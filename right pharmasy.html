@@ -1,0 +1,740 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Imran Management Pharmacy</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7f9;
+      color: #1f2937;
+    }
+
+    .container {
+      max-width: 950px;
+      margin: auto;
+      padding: 30px 16px 50px;
+    }
+
+    .header {
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #667085;
+    }
+
+    .search-box {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 15px 16px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 17px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #2563eb;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 14px 22px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .show-all-button {
+      margin-top: 12px;
+      width: 100%;
+      background: #16a34a;
+    }
+
+    .show-all-button:hover {
+      background: #15803d;
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: #667085;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .count {
+      background: white;
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      font-weight: bold;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    }
+
+    .empty,
+    .no-result {
+      background: white;
+      border-radius: 14px;
+      padding: 25px;
+      text-align: center;
+      color: #667085;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 15px;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.07);
+    }
+
+    .card h2 {
+      margin: 0 0 16px;
+      font-size: 23px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .item {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 13px;
+      background: #fafafa;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .label {
+      display: block;
+      font-size: 13px;
+      color: #667085;
+      margin-bottom: 5px;
+    }
+
+    .value {
+      font-weight: 600;
+      font-size: 16px;
+      white-space: pre-line;
+    }
+
+    .price,
+    .stock,
+    .rack {
+      font-size: 20px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 25px;
+      color: #667085;
+      font-size: 13px;
+    }
+
+    @media (max-width: 650px) {
+
+      .search-box {
+        flex-direction: column;
+      }
+
+      .search-box button {
+        width: 100%;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .full {
+        grid-column: auto;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+
+  <div class="header">
+
+    <h1>🏪 Imran Management Pharmacy</h1>
+
+    <p class="subtitle">
+      Search by Generic Name, Brand Name or Company
+    </p>
+
+
+    <!-- SEARCH -->
+
+    <div class="search-box">
+
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Example: Paracetamol, Ace, Square, all"
+        autocomplete="off"
+      >
+
+      <button type="button" id="searchButton">
+        🔎 Search
+      </button>
+
+    </div>
+
+
+    <!-- SHOW ALL BUTTON -->
+
+    <button
+      type="button"
+      id="showAllButton"
+      class="show-all-button"
+    >
+      🏠 Show All Medicines
+    </button>
+
+
+    <div class="hint">
+
+      Try:
+      <b>Paracetamol</b>,
+      <b>Ace</b>,
+      <b>Square</b>,
+      <b>ACI</b>,
+      <b>all</b>,
+      <b>show</b>,
+      <b>home</b>
+
+    </div>
+
+  </div>
+
+
+  <!-- RESULTS -->
+
+  <div id="results">
+
+    <div class="empty">
+      🔎 Type a medicine, brand or company name and click Search.
+    </div>
+
+  </div>
+
+
+  <!-- FOOTER -->
+
+  <div class="footer">
+
+    Imran Management Pharmacy —
+    Medicine Information & Search System
+
+  </div>
+
+</div>
+
+
+<script>
+
+
+/* =====================================================
+   MEDICINE DATABASE
+   ===================================================== */
+
+const medicines = [
+
+  {
+    generic: "Omeprazole",
+    brand: "Seclo",
+    company: "Square Pharmaceuticals PLC",
+    strength: "20 mg",
+    price: "৳ 2.50",
+    stock: 35,
+    rack: "A-03",
+    indications: ""
+  },
+
+  {
+    generic: "Omeprazole",
+    brand: "Omez",
+    company: "Dr. Reddy's Laboratories",
+    strength: "20 mg",
+    price: "৳ 2.00",
+    stock: 18,
+    rack: "A-03",
+    indications: ""
+  },
+
+  {
+    generic: "Omeprazole",
+    brand: "Losectil",
+    company: "Square Pharmaceuticals PLC",
+    strength: "20 mg",
+    price: "৳ 3.00",
+    stock: 12,
+    rack: "A-04",
+    indications: ""
+  },
+
+  {
+    generic: "Amoxicillin",
+    brand: "Admox",
+    company: "Team Pharmaceuticals Ltd.",
+    strength: "125 mg/5 ml",
+    price: "৳ 70.00",
+    stock: 10,
+    rack: "B-02",
+    indications: ""
+  },
+
+  {
+    generic: "Paracetamol",
+    brand: "Ace",
+    company: "Square Pharmaceuticals PLC",
+    strength: "500 mg",
+    price: "৳ 0.00",
+    stock: 0,
+    rack: "B-02",
+    indications: "জ্বর, ইনফ্লুয়েঞ্জা, মাথাব্যথা, দাঁতে ব্যথা, কানে ব্যথা, শরীর ব্যথা, ঋতুস্রাবজনিত ব্যথা, পিঠে ব্যথা, অস্ত্রোপচার পরবর্তী ব্যথা এবং শিশুদের টিকা পরবর্তী ব্যথায় ব্যবহার করা হয়।"
+  },
+
+  {
+    generic: "Ibuprofen",
+    brand: "Nurofen",
+    company: "Reckitt Benckiser",
+    strength: "Not added",
+    price: "৳ 0.00",
+    stock: 10,
+    rack: "B-02",
+    indications: ""
+  },
+
+  {
+    generic: "Diclofenac Sodium",
+    brand: "Voltalin",
+    company: "Square Pharmaceuticals PLC",
+    strength: "Not added",
+    price: "৳ 0.00",
+    stock: 0,
+    rack: "B-02",
+    indications: ""
+  },
+
+  {
+    generic: "Cetirizine",
+    brand: "Acitrin",
+    company: "ACI Limited",
+    strength: "Not added",
+    price: "৳ 0.00",
+    stock: 0,
+    rack: "B-02",
+    indications: ""
+  },
+
+  {
+    generic: "Loratadine",
+    brand: "Loratin",
+    company: "Square Pharmaceuticals PLC",
+    strength: "Not added",
+    price: "৳ 0.00",
+    stock: 0,
+    rack: "B-02",
+    indications: ""
+  },
+
+  {
+    generic: "Fexofenadine",
+    brand: "Fexo",
+    company: "Square Pharmaceuticals PLC",
+    strength: "Not added",
+    price: "৳ 0.00",
+    stock: 0,
+    rack: "B-02",
+    indications: ""
+  }
+
+];
+
+
+/* =====================================================
+   HTML SECURITY
+   ===================================================== */
+
+function escapeHtml(text) {
+
+  return String(text)
+
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+
+/* =====================================================
+   DISPLAY MEDICINES
+   ===================================================== */
+
+function displayMedicines(list) {
+
+  const results = document.getElementById("results");
+
+
+  // Medicine count
+
+  let html = `
+
+    <div class="count">
+
+      💊 Total Medicines Found:
+      <strong>${list.length}</strong>
+
+    </div>
+
+  `;
+
+
+  // যদি কোনো medicine না থাকে
+
+  if (list.length === 0) {
+
+    results.innerHTML = html + `
+
+      <div class="no-result">
+
+        ❌ No medicine found.
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  // সব medicine দেখানো
+
+  html += list.map(function(medicine) {
+
+    return `
+
+      <div class="card">
+
+        <h2>
+          💊 ${escapeHtml(medicine.brand || "Brand not added")}
+        </h2>
+
+
+        <div class="grid">
+
+
+          <div class="item">
+
+            <span class="label">
+              Generic Name
+            </span>
+
+            <span class="value">
+              ${escapeHtml(medicine.generic || "Not added")}
+            </span>
+
+          </div>
+
+
+          <div class="item">
+
+            <span class="label">
+              Brand Name
+            </span>
+
+            <span class="value">
+              ${escapeHtml(medicine.brand || "Not added")}
+            </span>
+
+          </div>
+
+
+          <div class="item">
+
+            <span class="label">
+              Company
+            </span>
+
+            <span class="value">
+              ${escapeHtml(medicine.company || "Not added")}
+            </span>
+
+          </div>
+
+
+          <div class="item">
+
+            <span class="label">
+              Strength
+            </span>
+
+            <span class="value">
+              ${escapeHtml(medicine.strength || "Not added")}
+            </span>
+
+          </div>
+
+
+          <div class="item">
+
+            <span class="label">
+              Sale Price
+            </span>
+
+            <span class="value price">
+              ${escapeHtml(medicine.price || "Not added")}
+            </span>
+
+          </div>
+
+
+          <div class="item">
+
+            <span class="label">
+              Stock
+            </span>
+
+            <span class="value stock">
+              ${escapeHtml(String(medicine.stock ?? "Not added"))}
+            </span>
+
+          </div>
+
+
+          <div class="item">
+
+            <span class="label">
+              Rack / Location
+            </span>
+
+            <span class="value rack">
+              📍 ${escapeHtml(medicine.rack || "Not added")}
+            </span>
+
+          </div>
+
+
+          ${
+            medicine.indications
+            ?
+            `
+
+            <div class="item full">
+
+              <span class="label">
+                নির্দেশনা / Indications
+              </span>
+
+              <span class="value">
+                ${escapeHtml(medicine.indications)}
+              </span>
+
+            </div>
+
+            `
+            :
+            ""
+          }
+
+
+        </div>
+
+      </div>
+
+    `;
+
+  }).join("");
+
+
+  results.innerHTML = html;
+
+}
+
+
+/* =====================================================
+   SEARCH MEDICINE
+   ===================================================== */
+
+function searchMedicine() {
+
+  const input = document.getElementById("searchInput");
+
+  const query = input.value.trim().toLowerCase();
+
+
+  // খালি Search
+
+  if (query === "") {
+
+    document.getElementById("results").innerHTML = `
+
+      <div class="empty">
+
+        🔎 Please type a medicine, brand or company name.
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  /* ===================================================
+     ALL / SHOW / HOME
+     =================================================== */
+
+  if (
+    query === "all" ||
+    query === "show" ||
+    query === "home"
+  ) {
+
+    displayMedicines(medicines);
+
+    return;
+
+  }
+
+
+  /* ===================================================
+     NORMAL SEARCH
+     =================================================== */
+
+  const matches = medicines.filter(function(medicine) {
+
+    const generic =
+      String(medicine.generic || "").toLowerCase();
+
+    const brand =
+      String(medicine.brand || "").toLowerCase();
+
+    const company =
+      String(medicine.company || "").toLowerCase();
+
+
+    return (
+
+      generic.includes(query) ||
+
+      brand.includes(query) ||
+
+      company.includes(query)
+
+    );
+
+  });
+
+
+  displayMedicines(matches);
+
+}
+
+
+/* =====================================================
+   SEARCH BUTTON
+   ===================================================== */
+
+document
+  .getElementById("searchButton")
+  .addEventListener("click", function() {
+
+    searchMedicine();
+
+  });
+
+
+/* =====================================================
+   SHOW ALL BUTTON
+   ===================================================== */
+
+document
+  .getElementById("showAllButton")
+  .addEventListener("click", function() {
+
+    document.getElementById("searchInput").value = "all";
+
+    displayMedicines(medicines);
+
+  });
+
+
+/* =====================================================
+   ENTER KEY
+   ===================================================== */
+
+document
+  .getElementById("searchInput")
+  .addEventListener("keydown", function(event) {
+
+    if (event.key === "Enter") {
+
+      searchMedicine();
+
+    }
+
+  });
+
+
+</script>
+
+</body>
+</html>
+```
