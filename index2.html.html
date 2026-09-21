@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imran Management Pharmacy</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f7f9;color:#1f2937}
+.container{max-width:1050px;margin:auto;padding:22px 14px 45px}
+.header{background:#fff;border-radius:16px;padding:22px;box-shadow:0 4px 18px rgba(0,0,0,.08);margin-bottom:18px}
+h1{margin:0 0 7px;font-size:29px}
+.subtitle{margin:0;color:#667085}
+.search-box{margin-top:18px;display:flex;gap:9px;align-items:stretch}
+input{flex:1;padding:14px 15px;border:1px solid #cbd5e1;border-radius:10px;font-size:17px;outline:none}
+input:focus{border-color:#2563eb}
+button{border:0;border-radius:10px;padding:13px 17px;font-size:15px;cursor:pointer;background:#2563eb;color:#fff}
+button:hover{filter:brightness(.94)}
+.camera-button{background:#7c3aed;white-space:nowrap}
+.show-all-button{margin-top:11px;width:100%;background:#16a34a}
+.category-title{margin:20px 0 9px;font-size:17px;font-weight:700}
+.category-buttons{display:flex;flex-wrap:wrap;gap:8px}
+.category-button{background:#334155;padding:11px 14px}
+.category-button.active{background:#0f766e}
+.category-button small{opacity:.85}
+.camera-status{margin-top:9px;padding:9px 11px;border-radius:10px;background:#f5f3ff;color:#5b21b6;font-size:14px;display:none}
+.hint{margin-top:10px;color:#667085;font-size:13px;line-height:1.6}
+.count{background:#fff;padding:13px 17px;border-radius:12px;margin-bottom:13px;font-weight:bold;box-shadow:0 3px 12px rgba(0,0,0,.06)}
+.empty,.no-result{background:#fff;border-radius:14px;padding:25px;text-align:center;color:#667085;box-shadow:0 3px 12px rgba(0,0,0,.06)}
+.card{background:#fff;border-radius:15px;padding:18px;margin-bottom:13px;box-shadow:0 3px 12px rgba(0,0,0,.07)}
+.card h2{margin:0 0 13px;font-size:21px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.item{border:1px solid #e5e7eb;border-radius:10px;padding:12px;background:#fafafa}
+.full{grid-column:1/-1}
+.label{display:block;font-size:12px;color:#667085;margin-bottom:4px}
+.value{font-weight:600;font-size:16px;white-space:pre-line;line-height:1.55}
+.footer{text-align:center;margin-top:22px;color:#667085;font-size:12px}
+@media(max-width:700px){
+ .search-box{flex-direction:column}
+ .search-box button{width:100%}
+ .grid{grid-template-columns:1fr}
+ .full{grid-column:auto}
+ h1{font-size:24px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🏪 Imran Management Pharmacy</h1>
+    <p class="subtitle">Generic Name • Brand Name • Company • Instruction</p>
+
+    <div class="search-box">
+      <input id="searchInput" type="text"
+        placeholder="Generic, Brand বা Company লিখুন..."
+        autocomplete="off">
+      <button id="searchButton" type="button">🔎 Search</button>
+      <button id="cameraButton" type="button" class="camera-button">📷 Prescription</button>
+      <input id="prescriptionInput" type="file" accept="image/*" capture="environment" hidden>
+    </div>
+
+    <div id="cameraStatus" class="camera-status"></div>
+
+    <button id="showAllButton" type="button" class="show-all-button">
+      📋 Show All Medicines
+    </button>
+
+    <div class="category-title">💊 প্রয়োজন অনুযায়ী Medicine</div>
+    <div id="categoryButtons" class="category-buttons"></div>
+
+    <div class="hint">
+      যেমন: <b>জ্বর</b> চাপলে শুধু জ্বরের তালিকা, <b>কাশি</b> চাপলে শুধু কাশির তালিকা আসবে।
+    </div>
+  </div>
+
+  <div id="results">
+    <div class="empty">🔎 Search করুন অথবা উপরের প্রয়োজনীয় button-এ click করুন।</div>
+  </div>
+
+  <div class="footer">Imran Management Pharmacy — Medicine Information & Search System</div>
+</div>
+
+<script>
+const medicines = [
+  {
+    "generic": "Paracetamol",
+    "brand": "Ace",
+    "company": "Square Pharmaceuticals PLC",
+    "instruction": "জ্বর ও হালকা-মাঝারি ব্যথা কমাতে ব্যবহৃত হয়। মাথাব্যথা, দাঁতের ব্যথা, শরীর ব্যথা ও সর্দি-জ্বরের উপসর্গে ব্যবহার করা হয়। (",
+    "categories": [
+      "জ্বর",
+      "ব্যথা"
+    ]
+  },
+  {
+    "generic": "Paracetamol",
+    "brand": "Napa",
+    "company": "Beximco Pharmaceuticals Ltd.",
+    "instruction": "জ্বর কমাতে এবং বিভিন্ন ধরনের হালকা-মাঝারি ব্যথা উপশমে ব্যবহার করা হয়। (",
+    "categories": [
+      "জ্বর",
+      "ব্যথা"
+    ]
+  },
+  {
+    "generic": "Ibuprofen",
+    "brand": "Advel",
+    "company": "Opsonin Pharma Ltd.",
+    "instruction": "ব্যথা, প্রদাহ ও জ্বর কমাতে ব্যবহৃত হয়। যেমন দাঁতের ব্যথা, মাসিকের ব্যথা, মাংসপেশি ও জয়েন্টের ব্যথা। (",
+    "categories": [
+      "জ্বর",
+      "ব্যথা"
+    ]
+  },
+  {
+    "generic": "Diclofenac Sodium",
+    "brand": "A-Fenac",
+    "company": "ACME Laboratories Ltd.",
+    "instruction": "প্রদাহ ও ব্যথা কমাতে ব্যবহৃত হয়। Osteoarthritis, rheumatoid arthritis এবং বিভিন্ন musculoskeletal pain-এ চিকিৎসকেরা ব্যবহার করেন। (",
+    "categories": [
+      "ব্যথা"
+    ]
+  },
+  {
+    "generic": "Cetirizine",
+    "brand": "Acitrin",
+    "company": "ACI Limited",
+    "instruction": "অ্যালার্জি, হাঁচি, নাক দিয়ে পানি পড়া ও চুলকানি কমাতে ব্যবহৃত হয়। Urticaria বা চাকা ওঠার ক্ষেত্রেও ব্যবহার করা হয়। (",
+    "categories": [
+      "অ্যালার্জি"
+    ]
+  },
+  {
+    "generic": "Cetirizine",
+    "brand": "Alatrol",
+    "company": "Square Pharmaceuticals PLC",
+    "instruction": "অ্যালার্জিক rhinitis-এর উপসর্গ এবং urticaria-তে ব্যবহৃত হয়। হাঁচি, নাক দিয়ে পানি পড়া ও অ্যালার্জিজনিত চুলকানি কমাতে সাহায্য করে। (",
+    "categories": [
+      "অ্যালার্জি"
+    ]
+  },
+  {
+    "generic": "Loratadine",
+    "brand": "Alaron",
+    "company": "ACI Limited",
+    "instruction": "অ্যালার্জির কারণে হাঁচি, নাক দিয়ে পানি পড়া ও নাক/চোখের চুলকানি কমাতে ব্যবহৃত হয়। Urticaria-তেও ব্যবহার করা হয়। (",
+    "categories": [
+      "অ্যালার্জি"
+    ]
+  },
+  {
+    "generic": "Fexofenadine",
+    "brand": "Afexa",
+    "company": "UniMed UniHealth Pharmaceuticals Ltd.",
+    "instruction": "অ্যালার্জিক rhinitis ও urticaria-এর উপসর্গ কমাতে ব্যবহৃত হয়। হাঁচি, নাক দিয়ে পানি পড়া ও চুলকানি কমাতে সাহায্য করে। (",
+    "categories": [
+      "অ্যালার্জি"
+    ]
+  },
+  {
+    "generic": "Omeprazole",
+    "brand": "Seclo",
+    "company": "Square Pharmaceuticals PLC",
+    "instruction": "অতিরিক্ত পাকস্থলীর অ্যাসিড, GERD ও peptic ulcer disease-এর চিকিৎসায় ব্যবহৃত হয়। Heartburn/acid reflux কমাতেও ব্যবহৃত হয়। (",
+    "categories": [
+      "গ্যাস্ট্রিক"
+    ]
+  },
+  {
+    "generic": "Omeprazole",
+    "brand": "Cosec",
+    "company": "Drug International Ltd.",
+    "instruction": "অতিরিক্ত gastric acid, GERD, gastritis ও peptic ulcer-এর মতো acid-related রোগে ব্যবহৃত হয়। (",
+    "categories": [
+      "গ্যাস্ট্রিক"
+    ]
+  },
+  {
+    "generic": "Pantoprazole",
+    "brand": "Pantonix",
+    "company": "Incepta Pharmaceuticals Ltd.",
+    "instruction": "GERD, peptic ulcer ও অতিরিক্ত gastric acid-এর চিকিৎসায় ব্যবহৃত হয়। Heartburn ও acid reflux কমাতে ব্যবহৃত হয়। (",
+    "categories": [
+      "গ্যাস্ট্রিক"
+    ]
+  },
+  {
+    "generic": "Aluminium Hydroxide + Magnesium Hydroxide",
+    "brand": "—",
+    "company": "—",
+    "instruction": "Gastric hyperacidity, heartburn, sour stomach ও dyspepsia-তে ব্যবহৃত হয়। Peptic ulcer-এর associated acidity কমাতেও ব্যবহার করা হয়। (",
+    "categories": [
+      "গ্যাস্ট্রিক"
+    ]
+  },
+  {
+    "generic": "Magnesium Hydroxide",
+    "brand": "Milk of Magnesia",
+    "company": "ACME Laboratories Ltd.",
+    "instruction": "অম্বল ও অতিরিক্ত অ্যাসিডিটির উপসর্গ কমাতে ব্যবহৃত হয়। কোষ্ঠকাঠিন্যেও laxative হিসেবে ব্যবহার করা হয়। (",
+    "categories": [
+      "গ্যাস্ট্রিক",
+      "কোষ্ঠকাঠিন্য"
+    ]
+  },
+  {
+    "generic": "Magnesium Hydroxide + Liquid Paraffin",
+    "brand": "Duolax",
+    "company": "Square Pharmaceuticals PLC",
+    "instruction": "কোষ্ঠকাঠিন্য দূর করতে ব্যবহৃত হয়। মল নরম করে bowel movement সহজ করতে সাহায্য করে। (",
+    "categories": [
+      "কোষ্ঠকাঠিন্য"
+    ]
+  },
+  {
+    "generic": "Bisacodyl",
+    "brand": "Duralax",
+    "company": "Opsonin Pharma Ltd.",
+    "instruction": "কোষ্ঠকাঠিন্যের চিকিৎসায় ব্যবহৃত হয়। Colonoscopy বা কিছু radiological examination-এর আগে bowel preparation-এর জন্যও ব্যবহৃত হতে পারে। (",
+    "categories": [
+      "কোষ্ঠকাঠিন্য"
+    ]
+  },
+  {
+    "generic": "Simethicone",
+    "brand": "Flacol",
+    "company": "Square Pharmaceuticals PLC",
+    "instruction": "পেটে অতিরিক্ত গ্যাস, bloating ও gas-related discomfort কমাতে ব্যবহৃত হয়। শিশুদের colic-এও কিছু formulation ব্যবহৃত হয়। (",
+    "categories": [
+      "গ্যাস"
+    ]
+  },
+  {
+    "generic": "Loperamide Hydrochloride",
+    "brand": "Imotil",
+    "company": "Square Pharmaceuticals PLC",
+    "instruction": "Acute non-specific diarrhoea-এর ক্ষেত্রে পায়খানার frequency কমাতে ব্যবহৃত হয়। কিছু chronic diarrhoea-তেও চিকিৎসকের পরামর্শে ব্যবহার করা হয়। (",
+    "categories": [
+      "ডায়রিয়া"
+    ]
+  },
+  {
+    "generic": "Domperidone Maleate",
+    "brand": "Domidon",
+    "company": "Ziska Pharmaceuticals Ltd.",
+    "instruction": "বমি ও বমি বমি ভাবের চিকিৎসায় ব্যবহার করা হয়। কিছু ক্ষেত্রে gastric motility সমস্যাতেও ব্যবহৃত হয়। (",
+    "categories": [
+      "গ্যাস্ট্রিক",
+      "বমি/বমিভাব"
+    ]
+  },
+  {
+    "generic": "Dextromethorphan",
+    "brand": "Brofex",
+    "company": "Square Pharmaceuticals PLC",
+    "instruction": "শুকনো বা non-productive cough কমাতে ব্যবহৃত হয়। এটি cough reflex দমন করে; কফযুক্ত productive cough-এর জন্য সবসময় উপযুক্ত নয়। (",
+    "categories": [
+      "কাশি"
+    ]
+  },
+  {
+    "generic": "Zinc Sulfate Monohydrate",
+    "brand": "Zesup",
+    "company": "Square Pharmaceuticals PLC",
+    "instruction": "Zinc deficiency প্রতিরোধ ও চিকিৎসায় ব্যবহৃত হয়। শিশুদের acute diarrhoea-তে zinc supplementation চিকিৎসার অংশ হিসেবে ব্যবহৃত হয়। (",
+    "categories": [
+      "ডায়রিয়া",
+      "ভিটামিন/জিঙ্ক"
+    ]
+  },
+  {
+    "generic": "Zinc Sulfate Monohydrate",
+    "brand": "Baby Zinc",
+    "company": "ACME Laboratories Ltd.",
+    "instruction": "Zinc deficiency এবং শিশুদের diarrhoea management-এ zinc supplementation হিসেবে ব্যবহৃত হয়। (",
+    "categories": [
+      "ডায়রিয়া",
+      "ভিটামিন/জিঙ্ক"
+    ]
+  },
+  {
+    "generic": "Vitamin C / Ascorbic Acid",
+    "brand": "Ascobex",
+    "company": "Beximco Pharmaceuticals Ltd.",
+    "instruction": "Vitamin C deficiency প্রতিরোধ ও চিকিৎসায় ব্যবহৃত হয়। শরীরে vitamin C-এর প্রয়োজন পূরণে supplement হিসেবে দেওয়া হয়। (",
+    "categories": [
+      "গ্যাস্ট্রিক",
+      "ভিটামিন/জিঙ্ক"
+    ]
+  },
+  {
+    "generic": "Ferrous Sulfate",
+    "brand": "Ferroglobin",
+    "company": "ACME Laboratories Ltd.",
+    "instruction": "Iron-deficiency anaemia-এর চিকিৎসা ও প্রতিরোধে ব্যবহৃত হয়। গর্ভাবস্থায় iron deficiency/anaemia-এর ক্ষেত্রেও চিকিৎসকেরা ব্যবহার করেন। (",
+    "categories": [
+      "আয়রন/রক্তস্বল্পতা"
+    ]
+  },
+  {
+    "generic": "Ferrous Sulfate + Folic Acid + Zinc",
+    "brand": "Efol ER",
+    "company": "Beximco Pharmaceuticals Ltd.",
+    "instruction": "Iron, folic acid ও zinc supplementation-এর জন্য ব্যবহৃত হয়। বিশেষ করে iron deficiency ও nutritional anaemia-তে চিকিৎসকেরা ব্যবহার করতে পারেন। (",
+    "categories": [
+      "গ্যাস্ট্রিক",
+      "ভিটামিন/জিঙ্ক",
+      "আয়রন/রক্তস্বল্পতা"
+    ]
+  },
+  {
+    "generic": "Mebendazole",
+    "brand": "Mebantrin",
+    "company": "Pharmadesh Laboratories Ltd.",
+    "instruction": "অন্ত্রের কৃমি যেমন roundworm, whipworm ও hookworm-এর চিকিৎসায় ব্যবহৃত হয়। Helminthic infection অনুযায়ী চিকিৎসকেরা ব্যবহার করেন। (",
+    "categories": [
+      "কৃমি"
+    ]
+  },
+  {
+    "generic": "Albendazole",
+    "brand": "ABZ",
+    "company": "Al-Madina Pharmaceuticals Ltd.",
+    "instruction": "বিভিন্ন intestinal worm infection-এর চিকিৎসায় ব্যবহৃত হয়। কিছু tissue helminth infection-এও চিকিৎসকের তত্ত্বাবধানে ব্যবহার করা হয়। (",
+    "categories": [
+      "কৃমি"
+    ]
+  },
+  {
+    "generic": "Povidone Iodine",
+    "brand": "Betadine",
+    "company": "Mundipharma (BD) Pvt. Ltd.",
+    "instruction": "ত্বক ও ক্ষত পরিষ্কার/জীবাণুমুক্ত করতে ব্যবহৃত হয়। বিভিন্ন minor wound ও skin infection prevention-এ topical antiseptic হিসেবে ব্যবহার করা হয়। (",
+    "categories": [
+      "ক্ষত/জীবাণুনাশক"
+    ]
+  },
+  {
+    "generic": "Povidone Iodine",
+    "brand": "Apodin",
+    "company": "Globe Pharmaceuticals Ltd.",
+    "instruction": "ক্ষত ও ত্বকের জায়গা জীবাণুমুক্ত করতে ব্যবহৃত হয়। এটি topical antiseptic preparation হিসেবে ব্যবহৃত হয়। (",
+    "categories": [
+      "ক্ষত/জীবাণুনাশক"
+    ]
+  },
+  {
+    "generic": "Chlorhexidine + Cetrimide",
+    "brand": "Savlon",
+    "company": "ACI Limited",
+    "instruction": "ছোটখাটো cuts, wounds ও skin cleansing-এ antiseptic হিসেবে ব্যবহৃত হয়। ত্বকের উপরিভাগ জীবাণুমুক্ত করতে ব্যবহার করা হয়। (",
+    "categories": [
+      "ক্ষত/জীবাণুনাশক"
+    ]
+  },
+  {
+    "generic": "Chlorhexidine Gluconate + Isopropyl Alcohol",
+    "brand": "Germisol",
+    "company": "Square Pharmaceuticals PLC",
+    "instruction": "হাত জীবাণুমুক্ত করার জন্য ব্যবহৃত হয়। Healthcare ও সাধারণ hand hygiene-তে antiseptic hand rub হিসেবে ব্যবহার করা হয়। (",
+    "categories": [
+      "ক্ষত/জীবাণুনাশক"
+    ]
+  },
+  {
+    "generic": "Clotrimazole",
+    "brand": "Afun",
+    "company": "Square Pharmaceuticals PLC",
+    "instruction": "ত্বকের fungal infection যেমন ringworm, athlete's foot ও jock itch-এর চিকিৎসায় ব্যবহৃত হয়। আক্রান্ত স্থানে topical cream হিসেবে ব্যবহার করা হয়। (",
+    "categories": [
+      "কৃমি",
+      "ছত্রাক/চর্মরোগ"
+    ]
+  },
+  {
+    "generic": "Hydrocortisone Acetate",
+    "brand": "Topicort",
+    "company": "Square Pharmaceuticals PLC",
+    "instruction": "প্রদাহ, redness ও itching-এর মতো inflammatory skin conditions-এ ব্যবহৃত হয়। এটি steroid cream হওয়ায় দীর্ঘদিন নিজের মতো ব্যবহার করা উচিত নয়। (",
+    "categories": [
+      "ব্যথা",
+      "চর্মরোগ"
+    ]
+  },
+  {
+    "generic": "Hydrocortisone Acetate",
+    "brand": "Intasone",
+    "company": "Incepta Pharmaceuticals Ltd.",
+    "instruction": "কিছু inflammatory ও itchy skin condition-এর চিকিৎসায় topical steroid হিসেবে ব্যবহৃত হয়। চিকিৎসকের নির্দেশ অনুযায়ী ব্যবহার করা উচিত। (",
+    "categories": [
+      "চর্মরোগ"
+    ]
+  },
+  {
+    "generic": "Chlorhexidine Gluconate 1%",
+    "brand": "Hexitane",
+    "company": "ACI Limited",
+    "instruction": "ত্বকের কিছু জায়গা ও নির্দিষ্ট topical use-এ জীবাণুনাশক হিসেবে ব্যবহৃত হয়। Formulation অনুযায়ী ব্যবহারের ক্ষেত্র আলাদা হতে পারে। (",
+    "categories": [
+      "ক্ষত/জীবাণুনাশক"
+    ]
+  },
+  {
+    "generic": "Magnesium Hydroxide",
+    "brand": "Magmil",
+    "company": "Pacific Pharmaceuticals Ltd.",
+    "instruction": "অম্বল ও hyperacidity-এর উপসর্গে ব্যবহার করা হয়। কোষ্ঠকাঠিন্যে laxative হিসেবেও ব্যবহার করা হয়। (",
+    "categories": [
+      "গ্যাস্ট্রিক",
+      "কোষ্ঠকাঠিন্য"
+    ]
+  },
+  {
+    "generic": "Magnesium Hydroxide",
+    "brand": "Magnamilk",
+    "company": "United Pharmaceuticals Ltd.",
+    "instruction": "Heartburn ও gastric acidity কমাতে ব্যবহার করা হয়। কোষ্ঠকাঠিন্যেও bowel movement সহজ করতে ব্যবহৃত হয়। (",
+    "categories": [
+      "গ্যাস্ট্রিক",
+      "কোষ্ঠকাঠিন্য"
+    ]
+  },
+  {
+    "generic": "Simethicone",
+    "brand": "Gasnil",
+    "company": "Eskayef Pharmaceuticals Ltd.",
+    "instruction": "অতিরিক্ত গ্যাস, abdominal bloating ও gas-related discomfort কমাতে ব্যবহৃত হয়। (",
+    "categories": [
+      "গ্যাস"
+    ]
+  },
+  {
+    "generic": "Simethicone",
+    "brand": "Neodrop",
+    "company": "Beximco Pharmaceuticals Ltd.",
+    "instruction": "পেটের গ্যাস ও bloating কমাতে ব্যবহৃত হয়। শিশুদের জন্য নির্দিষ্ট drop formulation রয়েছে। (",
+    "categories": [
+      "গ্যাস"
+    ]
+  },
+  {
+    "generic": "Zinc Sulfate Monohydrate",
+    "brand": "SMC Zinc",
+    "company": "SMC Enterprise Ltd.",
+    "instruction": "Zinc deficiency-এর চিকিৎসা ও supplementation-এ ব্যবহৃত হয়। শিশুদের diarrhoea management-এও zinc ব্যবহার করা হয়। (",
+    "categories": [
+      "ডায়রিয়া",
+      "ভিটামিন/জিঙ্ক"
+    ]
+  },
+  {
+    "generic": "Zinc Sulfate Monohydrate",
+    "brand": "Xinc",
+    "company": "Eskayef Pharmaceuticals Ltd.",
+    "instruction": "Zinc deficiency প্রতিরোধ ও চিকিৎসায় ব্যবহৃত হয়। প্রয়োজন অনুযায়ী শিশু ও প্রাপ্তবয়স্কদের supplementation-এ ব্যবহার করা হয়। (",
+    "categories": [
+      "ভিটামিন/জিঙ্ক"
+    ]
+  },
+  {
+    "generic": "Ferrous Sulfate",
+    "brand": "Aristoferon",
+    "company": "Beximco Pharmaceuticals Ltd.",
+    "instruction": "Iron deficiency ও iron-deficiency anaemia-এর চিকিৎসায় ব্যবহৃত হয়। গর্ভাবস্থায় প্রয়োজন অনুযায়ী iron supplementation-এ ব্যবহার করা হয়। (",
+    "categories": [
+      "ভিটামিন/জিঙ্ক",
+      "আয়রন/রক্তস্বল্পতা"
+    ]
+  },
+  {
+    "generic": "Ferrous Sulfate",
+    "brand": "Sinaferon",
+    "company": "The IBN SINA Pharmaceutical PLC",
+    "instruction": "Iron deficiency anaemia-এর চিকিৎসা ও প্রতিরোধে ব্যবহৃত হয়। শরীরে iron-এর ঘাটতি পূরণ করতে ব্যবহার করা হয়। (",
+    "categories": [
+      "আয়রন/রক্তস্বল্পতা"
+    ]
+  },
+  {
+    "generic": "Mebendazole",
+    "brand": "Helben",
+    "company": "Ad-din Pharmaceuticals Ltd.",
+    "instruction": "অন্ত্রের বিভিন্ন কৃমি সংক্রমণের চিকিৎসায় ব্যবহৃত হয়। বিশেষ করে common intestinal helminth infection-এ ব্যবহার করা হয়। (",
+    "categories": [
+      "কৃমি"
+    ]
+  },
+  {
+    "generic": "Mebendazole",
+    "brand": "Vermizol",
+    "company": "Zenith Pharmaceuticals Ltd.",
+    "instruction": "বিভিন্ন intestinal worm infection-এর চিকিৎসায় ব্যবহৃত হয়। রোগীর বয়স ও infection অনুযায়ী ব্যবহার করা হয়। (",
+    "categories": [
+      "কৃমি"
+    ]
+  },
+  {
+    "generic": "Albendazole",
+    "brand": "Alba",
+    "company": "Navana Pharmaceuticals Ltd.",
+    "instruction": "বিভিন্ন কৃমি সংক্রমণের চিকিৎসায় ব্যবহৃত হয়। নির্দিষ্ট parasitic infection অনুযায়ী dose ও duration চিকিৎসক নির্ধারণ করেন। (",
+    "categories": [
+      "কৃমি"
+    ]
+  },
+  {
+    "generic": "Dextromethorphan",
+    "brand": "Dexpofen",
+    "company": "Eskayef Pharmaceuticals Ltd.",
+    "instruction": "শুকনো কাশি কমাতে ব্যবহৃত হয়। Cough suppression-এর জন্য ব্যবহৃত হলেও দীর্ঘস্থায়ী বা গুরুতর কাশির কারণ নির্ণয় জরুরি। (",
+    "categories": [
+      "কাশি"
+    ]
+  },
+  {
+    "generic": "Dextromethorphan",
+    "brand": "Tomephen",
+    "company": "Incepta Pharmaceuticals Ltd.",
+    "instruction": "Dry/non-productive cough-এর symptomatic relief-এর জন্য ব্যবহৃত হয়। কাশির মূল কারণ অনুযায়ী চিকিৎসা প্রয়োজন হতে পারে। (",
+    "categories": [
+      "কাশি"
+    ]
+  },
+  {
+    "generic": "Loratadine",
+    "brand": "Aleze",
+    "company": "UniMed UniHealth Pharmaceuticals Ltd.",
+    "instruction": "Allergic rhinitis ও urticaria-এর উপসর্গ কমাতে ব্যবহৃত হয়। হাঁচি, নাক দিয়ে পানি পড়া ও অ্যালার্জিজনিত চুলকানি কমায়। (",
+    "categories": [
+      "অ্যালার্জি"
+    ]
+  },
+  {
+    "generic": "Pantoprazole",
+    "brand": "Labpan",
+    "company": "Labaid Pharma Ltd.",
+    "instruction": "অতিরিক্ত gastric acid, GERD ও acid-related disorders-এর চিকিৎসায় ব্যবহৃত হয়। Heartburn ও acid reflux কমাতে ব্যবহার করা হয়। (",
+    "categories": [
+      "গ্যাস্ট্রিক"
+    ]
+  }
+];
+
+const categoryOrder = [
+  "কাশি","জ্বর","ব্যথা","অ্যালার্জি","গ্যাস্ট্রিক","গ্যাস",
+  "কোষ্ঠকাঠিন্য","ডায়রিয়া","বমি/বমিভাব","কৃমি",
+  "ক্ষত/জীবাণুনাশক","ছত্রাক/চর্মরোগ","চর্মরোগ",
+  "ভিটামিন/জিঙ্ক","আয়রন/রক্তস্বল্পতা"
+];
+
+function escapeHtml(text) {
+  return String(text ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+function displayMedicines(list) {
+  const results = document.getElementById("results");
+  let html = `<div class="count">💊 Total Medicines Found: <strong>${list.length}</strong></div>`;
+
+  if (!list.length) {
+    results.innerHTML = html + `<div class="no-result">❌ No medicine found.</div>`;
+    return;
+  }
+
+  html += list.map(m => `
+    <div class="card">
+      <h2>💊 ${escapeHtml(m.brand || "Brand not added")}</h2>
+      <div class="grid">
+        <div class="item">
+          <span class="label">Generic Name</span>
+          <span class="value">${escapeHtml(m.generic)}</span>
+        </div>
+        <div class="item">
+          <span class="label">Brand Name</span>
+          <span class="value">${escapeHtml(m.brand)}</span>
+        </div>
+        <div class="item">
+          <span class="label">Company</span>
+          <span class="value">${escapeHtml(m.company)}</span>
+        </div>
+        <div class="item full">
+          <span class="label">Instruction / কোন রোগে ব্যবহার</span>
+          <span class="value">${escapeHtml(m.instruction)}</span>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  results.innerHTML = html;
+}
+
+function setActive(button) {
+  document.querySelectorAll(".category-button").forEach(b => b.classList.remove("active"));
+  if (button) button.classList.add("active");
+}
+
+function searchMedicine() {
+  const q = document.getElementById("searchInput").value.trim().toLowerCase();
+  if (!q) {
+    displayMedicines([]);
+    document.getElementById("results").innerHTML =
+      `<div class="empty">🔎 Generic, Brand বা Company লিখে Search করুন।</div>`;
+    return;
+  }
+
+  setActive(null);
+
+  const matches = medicines.filter(m =>
+    String(m.generic).toLowerCase().includes(q) ||
+    String(m.brand).toLowerCase().includes(q) ||
+    String(m.company).toLowerCase().includes(q) ||
+    String(m.instruction).toLowerCase().includes(q)
+  );
+
+  displayMedicines(matches);
+}
+
+function showCategory(category, button) {
+  document.getElementById("searchInput").value = "";
+  setActive(button);
+  const matches = medicines.filter(m => (m.categories || []).includes(category));
+  displayMedicines(matches);
+}
+
+function buildCategoryButtons() {
+  const box = document.getElementById("categoryButtons");
+  box.innerHTML = "";
+
+  categoryOrder.forEach(category => {
+    const count = medicines.filter(m => (m.categories || []).includes(category)).length;
+    if (!count) return;
+
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "category-button";
+    b.innerHTML = `${category} <small>(${count})</small>`;
+    b.addEventListener("click", () => showCategory(category, b));
+    box.appendChild(b);
+  });
+}
+
+document.getElementById("searchButton").addEventListener("click", searchMedicine);
+document.getElementById("searchInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") searchMedicine();
+});
+
+document.getElementById("showAllButton").addEventListener("click", () => {
+  document.getElementById("searchInput").value = "";
+  setActive(null);
+  displayMedicines(medicines);
+});
+
+/* Prescription camera + OCR */
+const cameraButton = document.getElementById("cameraButton");
+const prescriptionInput = document.getElementById("prescriptionInput");
+const cameraStatus = document.getElementById("cameraStatus");
+
+cameraButton.addEventListener("click", () => prescriptionInput.click());
+
+function normalizeOCR(text) {
+  return String(text || "").toLowerCase()
+    .replace(/[^\p{L}\p{N}\s.-]/gu, " ")
+    .replace(/\s+/g, " ").trim();
+}
+
+function levenshtein(a,b) {
+  const dp = Array.from({length:a.length+1},()=>Array(b.length+1).fill(0));
+  for(let i=0;i<=a.length;i++) dp[i][0]=i;
+  for(let j=0;j<=b.length;j++) dp[0][j]=j;
+  for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++)
+    dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,
+      dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return dp[a.length][b.length];
+}
+
+function medicineOCRScore(name, text) {
+  const n=normalizeOCR(name), t=normalizeOCR(text);
+  if(!n || n.length<3) return 0;
+  if(t.includes(n)) return 1;
+
+  const words=n.split(/\s+/).filter(w=>w.length>=3);
+  let found=0;
+  words.forEach(w=>{ if(t.includes(w)) found++; });
+  if(words.length && found===words.length) return .95;
+  if(words.length && found>0) return .65;
+
+  const ocrWords=t.split(/\s+/).filter(w=>w.length>=3);
+  let best=0;
+  ocrWords.forEach(ow=>words.forEach(nw=>{
+    const maxLen=Math.max(ow.length,nw.length);
+    const sim=1-levenshtein(ow,nw)/maxLen;
+    if(sim>best) best=sim;
+  }));
+  return best>=.78 ? best : 0;
+}
+
+function findMedicinesFromOCR(text) {
+  return medicines.map(m=>({
+    medicine:m,
+    score:Math.max(
+      medicineOCRScore(m.brand,text),
+      medicineOCRScore(m.generic,text)
+    )
+  })).filter(x=>x.score>=.65)
+    .sort((a,b)=>b.score-a.score)
+    .map(x=>x.medicine);
+}
+
+prescriptionInput.addEventListener("change", async function() {
+  const file=this.files && this.files[0];
+  if(!file) return;
+
+  cameraStatus.style.display="block";
+  cameraStatus.textContent="📷 Prescription পড়া হচ্ছে... একটু অপেক্ষা করুন।";
+
+  try {
+    if(typeof Tesseract==="undefined") throw new Error("OCR library not loaded");
+
+    const result=await Tesseract.recognize(file,"eng",{
+      logger: info => {
+        if(info.status==="recognizing text" && info.progress)
+          cameraStatus.textContent="📷 Prescription পড়া হচ্ছে... "+
+            Math.round(info.progress*100)+"%";
+      }
+    });
+
+    const ocrText=result.data.text || "";
+    const matches=findMedicinesFromOCR(ocrText);
+
+    if(matches.length) {
+      displayMedicines(matches);
+      cameraStatus.textContent="✅ Prescription থেকে সম্ভাব্য medicine পাওয়া গেছে। OCR ভুল হলে Search দিয়ে যাচাই করুন।";
+    } else {
+      document.getElementById("results").innerHTML=`
+        <div class="no-result">
+          ❌ Database-এর কোনো medicine match পাওয়া যায়নি।<br><br>
+          <small>OCR text:</small><br>
+          <div style="margin-top:8px;text-align:left;white-space:pre-line">
+            ${escapeHtml(ocrText || "কোনো লেখা পাওয়া যায়নি।")}
+          </div>
+        </div>`;
+      cameraStatus.textContent="⚠️ পরিষ্কার ও সোজা prescription ছবি দিয়ে আবার চেষ্টা করুন।";
+    }
+  } catch(e) {
+    console.error(e);
+    cameraStatus.textContent="❌ Prescription পড়তে সমস্যা হয়েছে। Internet ও পরিষ্কার ছবি পরীক্ষা করুন।";
+  }
+
+  prescriptionInput.value="";
+});
+
+buildCategoryButtons();
+</script>
+</body>
+</html>
